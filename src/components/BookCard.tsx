@@ -14,25 +14,37 @@ interface BookCardProps {
   title: string;
   author: string;
   price: number;
-  image: string;
+  image_url?: string; // Supabase uses image_url
+  image?: string;     // Context uses image
   category: string;
   rating: number;
 }
 
-const BookCard = ({ id, title, author, price, image, category, rating }: BookCardProps) => {
+const BookCard = ({ id, title, author, price, image_url, image, category, rating }: BookCardProps) => {
   const { addToCart } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
   
   const isWishlisted = isInWishlist(id);
+  const displayImage = image_url || image || '';
+
+  // Logic to handle local images vs remote URLs
+  const getImageUrl = (url: string) => {
+    if (!url) return '/placeholder.svg';
+    if (url.startsWith('http')) return url;
+    return `/images/${url}`;
+  };
 
   return (
     <div className="group relative glass-dark rounded-3xl p-4 transition-all duration-500 hover:-translate-y-2 hover:shadow-white/5">
       <Link to={`/book/${id}`} className="block">
         <div className="relative aspect-[3/4] overflow-hidden rounded-2xl mb-4">
           <img 
-            src={image} 
+            src={getImageUrl(displayImage)} 
             alt={title} 
             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+            onError={(e) => {
+              e.currentTarget.src = '/placeholder.svg';
+            }}
           />
           <Badge className="absolute bottom-3 left-3 bg-white/10 backdrop-blur-md border-white/10 text-white">
             {category}
@@ -50,7 +62,7 @@ const BookCard = ({ id, title, author, price, image, category, rating }: BookCar
           )}
           onClick={(e) => {
             e.preventDefault();
-            toggleWishlist({ id, title, author, price, image, category, rating });
+            toggleWishlist({ id, title, author, price, image: displayImage, category, rating });
           }}
         >
           <Heart size={18} fill={isWishlisted ? "currentColor" : "none"} />
@@ -72,7 +84,7 @@ const BookCard = ({ id, title, author, price, image, category, rating }: BookCar
           <Button 
             size="sm" 
             className="rounded-full bg-white text-black hover:bg-white/90"
-            onClick={() => addToCart({ id, title, price, image })}
+            onClick={() => addToCart({ id, title, price, image: displayImage })}
           >
             <ShoppingCart size={16} className="mr-2" />
             Add
