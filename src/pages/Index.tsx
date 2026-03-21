@@ -1,11 +1,12 @@
 "use client";
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import BookCard from '@/components/BookCard';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Sparkles, BookOpen } from 'lucide-react';
+import { ArrowRight, Sparkles, BookOpen, Database } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 const FEATURED_BOOKS = [
   { id: "1", title: "The Echoes of Silence", author: "Elena Thorne", price: 24.99, image: "https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=800&auto=format&fit=crop", category: "Fiction", rating: 4.8 },
@@ -15,11 +16,37 @@ const FEATURED_BOOKS = [
 ];
 
 const Index = () => {
+  const [isConnected, setIsConnected] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const checkConnection = async () => {
+      try {
+        const { data, error } = await supabase.from('books').select('count', { count: 'exact', head: true });
+        setIsConnected(!error);
+      } catch {
+        setIsConnected(false);
+      }
+    };
+    checkConnection();
+  }, []);
+
   return (
     <div className="min-h-screen bg-black text-white selection:bg-white/20">
       <Navbar />
       
       <main className="pt-32 pb-20 px-6">
+        {/* Connection Status Badge */}
+        <div className="max-w-7xl mx-auto mb-8 flex justify-center">
+          <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase border ${
+            isConnected === true ? 'bg-green-500/10 border-green-500/20 text-green-500' : 
+            isConnected === false ? 'bg-red-500/10 border-red-500/20 text-red-500' : 
+            'bg-white/5 border-white/10 text-white/40'
+          }`}>
+            <Database size={12} />
+            {isConnected === true ? 'Supabase Connected' : isConnected === false ? 'Connection Error' : 'Checking Connection...'}
+          </div>
+        </div>
+
         {/* Hero Section */}
         <section className="max-w-7xl mx-auto mb-32 text-center relative">
           <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-white/5 rounded-full blur-[120px] -z-10" />

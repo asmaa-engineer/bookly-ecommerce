@@ -1,12 +1,13 @@
--- User Profiles
+-- 1. User Profiles (Extends Supabase Auth)
 CREATE TABLE user_profiles (
   id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
   full_name TEXT,
   avatar_url TEXT,
+  email TEXT,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
 );
 
--- Books Catalog
+-- 2. Books Catalog
 CREATE TABLE books (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   title TEXT NOT NULL,
@@ -14,13 +15,13 @@ CREATE TABLE books (
   price DECIMAL(10,2) NOT NULL,
   image_url TEXT,
   category TEXT,
-  rating DECIMAL(3,2),
+  rating DECIMAL(3,2) DEFAULT 0,
   description TEXT,
   stock_count INTEGER DEFAULT 0,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
 );
 
--- Wishlist
+-- 3. Wishlist (Many-to-Many)
 CREATE TABLE wishlist (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
@@ -29,36 +30,50 @@ CREATE TABLE wishlist (
   UNIQUE(user_id, book_id)
 );
 
--- Cart Items
+-- 4. Cart Items
 CREATE TABLE cart_items (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
   book_id UUID REFERENCES books ON DELETE CASCADE NOT NULL,
-  quantity INTEGER DEFAULT 1,
+  quantity INTEGER DEFAULT 1 CHECK (quantity > 0),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()),
   UNIQUE(user_id, book_id)
 );
 
--- Orders
+-- 5. Orders
 CREATE TABLE orders (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
   total_amount DECIMAL(10,2) NOT NULL,
-  status TEXT DEFAULT 'pending',
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'shipped', 'delivered', 'cancelled')),
+  shipping_address TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
 );
 
--- Enable Row Level Security
+-- 6. Order Items (Details for each order)
+CREATE TABLE order_items (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  order_id UUID REFERENCES orders ON DELETE CASCADE NOT NULL,
+  book_id UUID REFERENCES books ON DELETE SET NULL,
+  quantity INTEGER NOT NULL,
+  price_at_purchase DECIMAL(10,2) NOT NULL
+);
+
+-- Enable Row Level Security (RLS)
 ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE books ENABLE ROW LEVEL SECURITY;
 ALTER TABLE wishlist ENABLE ROW LEVEL SECURITY;
 ALTER TABLE cart_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE order_items ENABLE ROW LEVEL SECURITY;
 
--- Policies
-CREATE POLICY "Public books are viewable by everyone" ON books FOR SELECT USING (true);
+-- RLS Policies
+CREATE POLICY "Books are viewable by everyone" ON books FOR SELECT USING (true);
 CREATE POLICY "Users can view their own profile" ON user_profiles FOR SELECT USING (auth.uid() = id);
 CREATE POLICY "Users can update their own profile" ON user_profiles FOR UPDATE USING (auth.uid() = id);
 CREATE POLICY "Users can manage their own wishlist" ON wishlist FOR ALL USING (auth.uid() = user_id);
 CREATE POLICY "Users can manage their own cart" ON cart_items FOR ALL USING (auth.uid() = user_id);
 CREATE POLICY "Users can view their own orders" ON orders FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can view their own order items" ON order_items FOR SELECT USING (
+  EXISTS (SELECT 1 FROM orders WHERE orders.id = order_items.order_id AND orders.user_id = auth.uid())
+);
