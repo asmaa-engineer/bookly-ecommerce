@@ -10,19 +10,16 @@ import Cart from "./pages/Cart";
 import Wishlist from "./pages/Wishlist";
 import Catalog from "./pages/Catalog";
 import BookDetails from "./pages/BookDetails";
+import Profile from "./pages/Profile";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import { CartProvider } from "./context/CartContext";
 import { WishlistProvider } from "./context/WishlistContext";
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AdminRoute from "./components/AdminRoute";
 
 const queryClient = new QueryClient();
-
-// Placeholder components for new protected pages
-const Profile = () => <div className="min-h-screen bg-black text-white pt-32 px-6"><Navbar /><h1 className="text-4xl font-bold">Profile Page</h1></div>;
-const Checkout = () => <div className="min-h-screen bg-black text-white pt-32 px-6"><Navbar /><h1 className="text-4xl font-bold">Checkout Page</h1></div>;
-
-import Navbar from "./components/Navbar";
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -44,7 +41,9 @@ const App = () => (
                 <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
                 <Route path="/wishlist" element={<ProtectedRoute><Wishlist /></ProtectedRoute>} />
                 <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-                <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
+                
+                {/* Admin Routes */}
+                <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
                 
                 <Route path="*" element={<NotFound />} />
               </Routes>

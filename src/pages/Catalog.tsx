@@ -1,99 +1,119 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import BookCard from '@/components/BookCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, SlidersHorizontal } from 'lucide-react';
+import { Slider } from '@/components/ui/slider';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Search, SlidersHorizontal, X } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
-const ALL_BOOKS = [
-  { id: "1", title: "The Echoes of Silence", author: "Elena Thorne", price: 24.99, image: "https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=800&auto=format&fit=crop", category: "Fiction", rating: 4.8 },
-  { id: "2", title: "Digital Frontiers", author: "Marcus Chen", price: 19.99, image: "https://images.unsplash.com/photo-1589829085413-56de8ae18c73?q=80&w=800&auto=format&fit=crop", category: "Technology", rating: 4.5 },
-  { id: "3", title: "Midnight in Kyoto", author: "Satoshi Nakamoto", price: 22.50, image: "https://images.unsplash.com/photo-1543004218-ee141104638e?q=80&w=800&auto=format&fit=crop", category: "Mystery", rating: 4.9 },
-  { id: "4", title: "The Art of Simplicity", author: "Sarah Jenkins", price: 15.00, image: "https://images.unsplash.com/photo-1532012197267-da84d127e765?q=80&w=800&auto=format&fit=crop", category: "Lifestyle", rating: 4.7 },
-  { id: "5", title: "Beyond the Horizon", author: "David Vance", price: 28.00, image: "https://images.unsplash.com/photo-1512820790803-83ca734da794?q=80&w=800&auto=format&fit=crop", category: "Fiction", rating: 4.6 },
-  { id: "6", title: "Code & Soul", author: "Aria Stark", price: 32.00, image: "https://images.unsplash.com/photo-1516979187457-637abb4f9353?q=80&w=800&auto=format&fit=crop", category: "Technology", rating: 4.9 },
-  { id: "7", title: "The Last Alchemist", author: "Julian Black", price: 21.00, image: "https://images.unsplash.com/photo-1495446815901-a7297e633e8d?q=80&w=800&auto=format&fit=crop", category: "Mystery", rating: 4.4 },
-  { id: "8", title: "Minimalist Living", author: "Kaito Lee", price: 18.50, image: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?q=80&w=800&auto=format&fit=crop", category: "Lifestyle", rating: 4.3 },
-];
-
-const CATEGORIES = ["All", "Fiction", "Technology", "Mystery", "Lifestyle"];
+const CATEGORIES = ["Fiction", "Technology", "Mystery", "Lifestyle", "History", "Science"];
 
 const Catalog = () => {
+  const [books, setBooks] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [priceRange, setPriceRange] = useState([0, 100]);
+  const [minRating, setMinRating] = useState(0);
+  const [sortBy, setSortBy] = useState("newest");
+  const [showFilters, setShowFilters] = useState(false);
 
-  const filteredBooks = ALL_BOOKS.filter(book => {
-    const matchesSearch = book.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                         book.author.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === "All" || book.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+  useEffect(() => {
+    fetchBooks();
+  }, [searchQuery, selectedCategories, priceRange, minRating, sortBy]);
+
+  const fetchBooks = async () => {
+    let query = supabase.from('books').select('*');
+
+    if (searchQuery) query = query.ilike('title', `%${searchQuery}%`);
+    if (selectedCategories.length > 0) query = query.in('category', selectedCategories);
+    query = query.gte('price', priceRange[0]).lte('price', priceRange[1]);
+    if (minRating > 0) query = query.gte('rating', minRating);
+
+    if (sortBy === "price-low") query = query.order('price', { ascending: true });
+    else if (sortBy === "price-high") query = query.order('price', { ascending: false });
+    else if (sortBy === "rating") query = query.order('rating', { ascending: false });
+    else query = query.order('created_at', { ascending: false });
+
+    const { data } = await query;
+    setBooks(data || []);
+  };
 
   return (
     <div className="min-h-screen bg-black text-white">
       <Navbar />
-      
-      <main className="pt-32 pb-20 px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12">
-            <div>
-              <h1 className="text-5xl font-bold tracking-tighter mb-4">EXPLORE CATALOG</h1>
-              <p className="text-white/40">Discover thousands of stories waiting for you.</p>
-            </div>
-            
-            <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
-              <div className="relative flex-grow sm:w-80">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" size={18} />
-                <Input 
-                  placeholder="Search by title or author..." 
-                  className="bg-white/5 border-white/10 pl-12 h-12 rounded-2xl focus:ring-white/20"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
+      <main className="pt-32 pb-20 px-6 max-w-7xl mx-auto">
+        <div className="flex flex-col md:flex-row gap-12">
+          {/* Sidebar Filters */}
+          <aside className={`fixed inset-0 z-50 bg-black md:relative md:bg-transparent md:block md:w-64 space-y-8 transition-transform ${showFilters ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+            <div className="p-6 md:p-0 space-y-8">
+              <div className="flex items-center justify-between md:hidden">
+                <h2 className="text-2xl font-bold">Filters</h2>
+                <Button variant="ghost" onClick={() => setShowFilters(false)}><X /></Button>
               </div>
-              <Button variant="outline" className="h-12 rounded-2xl border-white/10 glass px-6">
-                <SlidersHorizontal className="mr-2" size={18} />
-                Filters
-              </Button>
+
+              <div className="space-y-4">
+                <h3 className="font-bold uppercase tracking-widest text-xs text-white/40">Categories</h3>
+                <div className="space-y-2">
+                  {CATEGORIES.map(cat => (
+                    <div key={cat} className="flex items-center gap-3">
+                      <Checkbox 
+                        id={cat} 
+                        checked={selectedCategories.includes(cat)}
+                        onCheckedChange={(checked) => {
+                          setSelectedCategories(prev => checked ? [...prev, cat] : prev.filter(c => c !== cat));
+                        }}
+                      />
+                      <label htmlFor={cat} className="text-sm cursor-pointer">{cat}</label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="font-bold uppercase tracking-widest text-xs text-white/40">Price Range</h3>
+                <Slider defaultValue={[0, 100]} max={100} step={1} value={priceRange} onValueChange={setPriceRange} className="py-4" />
+                <div className="flex justify-between text-sm text-white/40"><span>$0</span><span>${priceRange[1]}</span></div>
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="font-bold uppercase tracking-widest text-xs text-white/40">Min Rating</h3>
+                <div className="flex gap-2">
+                  {[1, 2, 3, 4, 5].map(r => (
+                    <button key={r} onClick={() => setMinRating(r)} className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold transition-colors ${minRating === r ? 'bg-white text-black' : 'bg-white/5 hover:bg-white/10'}`}>{r}+</button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          {/* Main Content */}
+          <div className="flex-grow space-y-8">
+            <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+              <div className="relative w-full sm:w-96">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" size={18} />
+                <Input placeholder="Search by title or author..." className="bg-white/5 border-white/10 pl-12 h-12 rounded-2xl" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+              </div>
+              <div className="flex items-center gap-4 w-full sm:w-auto">
+                <select className="bg-white/5 border-white/10 rounded-2xl h-12 px-4 text-sm outline-none focus:ring-1 ring-white/20" value={sortBy} onChange={e => setSortBy(e.target.value)}>
+                  <option value="newest">Newest First</option>
+                  <option value="price-low">Price: Low to High</option>
+                  <option value="price-high">Price: High to Low</option>
+                  <option value="rating">Best Rating</option>
+                </select>
+                <Button variant="outline" className="md:hidden h-12 rounded-2xl border-white/10 glass" onClick={() => setShowFilters(true)}><SlidersHorizontal size={18} /></Button>
+              </div>
+            </div>
+
+            <p className="text-white/40 text-sm">{books.length} results found</p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+              {books.map(book => <BookCard key={book.id} {...book} />)}
             </div>
           </div>
-
-          <div className="flex gap-2 overflow-x-auto pb-8 no-scrollbar">
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`px-6 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap ${
-                  selectedCategory === cat 
-                    ? "bg-white text-black" 
-                    : "glass text-white/60 hover:text-white"
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
-
-          {filteredBooks.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-              {filteredBooks.map((book) => (
-                <BookCard key={book.id} {...book} />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-32 glass-dark rounded-[40px]">
-              <p className="text-white/40 text-xl">No books found matching your criteria.</p>
-              <Button 
-                variant="link" 
-                className="text-white mt-4"
-                onClick={() => { setSearchQuery(""); setSelectedCategory("All"); }}
-              >
-                Clear all filters
-              </Button>
-            </div>
-          )}
         </div>
       </main>
     </div>
