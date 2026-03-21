@@ -1,160 +1,129 @@
-// src/lib/gemini.ts
-import { GoogleGenerativeAI } from "@google/generative-ai";
+"use client";
 
-// Next.js uses process.env, not import.meta.env
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+import React, { useState } from 'react';
+import { Bot, X, Send } from 'lucide-react';
 
-export interface AIResponse {
-  text: string;
-  intent: "search" | "recommend" | "greeting" | "unknown" | "fallback" | "error";
-  keywords?: string;
-}
+const AIChatbot = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [messages, setMessages] = useState<{ role: string; content: string }[]>([
+    { role: 'ai', content: "Hi! I'm Bookly AI. What kind of book are you looking for?" }
+  ]);
+  const [input, setInput] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
 
-export const chatWithAI = async (message: string, history: any[]): Promise<AIResponse> => {
-  // Check if API key is available
-  if (!GEMINI_API_KEY || GEMINI_API_KEY === '') {
-    console.log("No Gemini API key found - using offline mode");
-    return offlineResponse(message);
-  }
+  const handleSend = async (text: string = input) => {
+    if (!text.trim()) return;
 
-  try {
-    // Initialize Gemini AI
-    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
-    
-    const lowerMsg = message.toLowerCase();
-    
-    const prompt = `You are Bookly AI, a helpful book recommendation assistant.
-    
-User message: "${message}"
+    setMessages(prev => [...prev, { role: 'user', content: text }]);
+    setInput('');
+    setIsTyping(true);
 
-Analyze the user's intent and return ONLY a JSON object with these fields:
-- text: your natural, friendly response to the user
-- intent: either "search" (if user wants book recommendations), "greeting", or "unknown"
-- keywords: if intent is "search", extract the main search terms (genre, mood, author, or topic)
-
-Examples:
-{"text": "I'd love to recommend some thrilling books! Here are my top picks:", "intent": "search", "keywords": "thriller"}
-{"text": "Hello! I'm Bookly AI. What kind of book are you in the mood for today?", "intent": "greeting", "keywords": ""}
-{"text": "That's interesting! Tell me more about what you like to read.", "intent": "unknown", "keywords": ""}
-
-Return ONLY the JSON, no other text.`;
-
-    const result = await model.generateContent(prompt);
-    const responseText = result.response.text();
-    
-    // Extract JSON from response
-    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
-      return {
-        text: parsed.text || "Here are some books you might enjoy!",
-        intent: parsed.intent || "unknown",
-        keywords: parsed.keywords || ""
-      };
-    }
-    
-    return {
-      text: responseText,
-      intent: "unknown"
-    };
-    
-  } catch (error) {
-    console.error("Gemini API Error:", error);
-    return offlineResponse(message);
-  }
-};
-
-// Offline mode - works without API key
-function offlineResponse(message: string): AIResponse {
-  const lowerMsg = message.toLowerCase();
-  
-  // Detect intent from keywords
-  if (lowerMsg.includes("recommend") || lowerMsg.includes("find") || lowerMsg.includes("book") || lowerMsg.includes("read")) {
-    let keywords = "";
-    
-    // Extract potential keywords
-    if (lowerMsg.includes("thriller") || lowerMsg.includes("mystery")) {
-      keywords = "thriller";
-    } else if (lowerMsg.includes("sci-fi") || lowerMsg.includes("science fiction") || lowerMsg.includes("sci fi")) {
-      keywords = "sci-fi";
-    } else if (lowerMsg.includes("motivation") || lowerMsg.includes("self") || lowerMsg.includes("development")) {
-      keywords = "self development";
-    } else if (lowerMsg.includes("romance") || lowerMsg.includes("love")) {
-      keywords = "romance";
-    } else if (lowerMsg.includes("fantasy")) {
-      keywords = "fantasy";
-    } else {
-      // Extract simple keywords
-      keywords = message.replace(/recommend|find|me|some|books|about|like|please/gi, "").trim();
-      if (keywords.length > 30) keywords = keywords.substring(0, 30);
-      if (keywords === "") keywords = "fiction";
-    }
-    
-    return {
-      text: `I'll look for some ${keywords} books for you!`,
-      intent: "search",
-      keywords: keywords
-    };
-  }
-  
-  if (lowerMsg.includes("hello") || lowerMsg.includes("hi") || lowerMsg.includes("hey")) {
-    return {
-      text: "Hello! I'm Bookly AI. Tell me what kind of book you're looking for and I'll help you find it!",
-      intent: "greeting"
-    };
-  }
-  
-  return {
-    text: "I can help you find books! Try asking for 'thriller books', 'sci-fi recommendations', or 'books for motivation'.",
-    intent: "unknown"
+    // Simple response
+    setTimeout(() => {
+      setIsTyping(false);
+      let response = "";
+      const lowerMsg = text.toLowerCase();
+      
+      if (lowerMsg.includes("thriller")) {
+        response = "I recommend checking out our thriller section! Try looking for books by Dan Brown or Gillian Flynn.";
+      } else if (lowerMsg.includes("sci-fi") || lowerMsg.includes("science fiction")) {
+        response = "Sci-fi is amazing! Check out Dune by Frank Herbert or The Martian by Andy Weir.";
+      } else if (lowerMsg.includes("motivation")) {
+        response = "For motivation, I recommend Atomic Habits by James Clear or The 7 Habits of Highly Effective People.";
+      } else {
+        response = "I can help you find books! Try asking for 'thriller', 'sci-fi', or 'motivation' books.";
+      }
+      
+      setMessages(prev => [...prev, { role: 'ai', content: response }]);
+    }, 1000);
   };
-}
 
-export const generateDescription = async (title: string, author: string): Promise<string> => {
-  if (!GEMINI_API_KEY) {
-    return `${title} by ${author} is a captivating book that readers are loving. A must-read for fans of ${author}!`;
-  }
-  
-  try {
-    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
-    const result = await model.generateContent(`Generate a short, engaging book description for "${title}" by ${author}. Make it 2-3 sentences.`);
-    return result.response.text();
-  } catch {
-    return `${title} by ${author} is a wonderful book that explores deep themes with beautiful prose. Highly recommended!`;
-  }
+  const suggestedQuestions = ["Recommend a thriller", "Best Sci-Fi books", "Books for motivation"];
+
+  return (
+    <div className="fixed bottom-6 right-6 z-[100]">
+      {!isOpen ? (
+        <button
+          onClick={() => setIsOpen(true)}
+          className="w-14 h-14 rounded-full bg-white text-black shadow-2xl hover:scale-110 transition-all flex items-center justify-center"
+        >
+          <Bot size={28} />
+        </button>
+      ) : (
+        <div className="w-[380px] h-[550px] bg-black/90 backdrop-blur-xl rounded-2xl flex flex-col overflow-hidden border border-white/20 shadow-2xl">
+          {/* Header */}
+          <div className="p-4 border-b border-white/10 flex justify-between items-center bg-white/5">
+            <div className="flex items-center gap-2">
+              <Bot size={20} className="text-white" />
+              <span className="font-bold text-white">Bookly AI</span>
+              <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+            </div>
+            <button onClick={() => setIsOpen(false)} className="text-white/60 hover:text-white">
+              <X size={18} />
+            </button>
+          </div>
+
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {messages.map((msg, i) => (
+              <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[85%] p-3 rounded-2xl text-sm ${
+                  msg.role === 'user' 
+                    ? 'bg-white text-black rounded-br-none' 
+                    : 'bg-white/10 text-white rounded-bl-none border border-white/10'
+                }`}>
+                  {msg.content}
+                </div>
+              </div>
+            ))}
+            
+            {isTyping && (
+              <div className="flex justify-start">
+                <div className="bg-white/10 px-4 py-2 rounded-2xl rounded-bl-none flex gap-1">
+                  <span className="w-2 h-2 bg-white/60 rounded-full animate-bounce"></span>
+                  <span className="w-2 h-2 bg-white/60 rounded-full animate-bounce delay-75"></span>
+                  <span className="w-2 h-2 bg-white/60 rounded-full animate-bounce delay-150"></span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Suggested Questions */}
+          <div className="px-4 py-2 flex gap-2 overflow-x-auto border-t border-white/10 bg-white/5">
+            {suggestedQuestions.map(q => (
+              <button
+                key={q}
+                onClick={() => handleSend(q)}
+                className="px-3 py-1.5 rounded-full bg-white/10 text-xs text-white/80 whitespace-nowrap hover:bg-white hover:text-black transition"
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+
+          {/* Input */}
+          <div className="p-4 border-t border-white/10">
+            <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex gap-2">
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Ask Bookly AI..."
+                className="flex-1 bg-white/10 border border-white/20 rounded-xl px-4 py-2 text-white text-sm placeholder:text-white/40 focus:outline-none focus:border-white/50"
+              />
+              <button
+                type="submit"
+                disabled={!input.trim() || isTyping}
+                className="w-10 h-10 rounded-xl bg-white text-black flex items-center justify-center disabled:opacity-50"
+              >
+                <Send size={16} />
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 };
 
-export const generateReviewSummary = async (reviews: any[]): Promise<string> => {
-  if (!reviews || reviews.length === 0) return "No reviews yet. Be the first to review this book!";
-  if (!GEMINI_API_KEY) {
-    const avgRating = reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length;
-    return `Readers rate this book ${avgRating.toFixed(1)} stars out of 5. ${reviews.length} reviews total.`;
-  }
-  
-  try {
-    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
-    const reviewTexts = reviews.slice(0, 5).map(r => r.comment).join(". ");
-    const result = await model.generateContent(`Summarize what readers are saying about this book in 1 sentence based on these reviews: ${reviewTexts}`);
-    return result.response.text();
-  } catch {
-    return "Readers are enjoying this book! Check out the reviews for more details.";
-  }
-};
-
-export const analyzeUserMood = (mood: string): string[] => {
-  const moodMap: Record<string, string[]> = {
-    happy: ["Fiction", "Comedy", "Lifestyle", "Adventure"],
-    sad: ["Drama", "Poetry", "Memoir", "Inspirational"],
-    curious: ["Science", "History", "Technology", "Philosophy"],
-    tired: ["Short Stories", "Light Fiction", "Art", "Travel"],
-    motivated: ["Self Development", "Business", "Biography", "Productivity"],
-    stressed: ["Mindfulness", "Meditation", "Self Development", "Fiction"],
-    romantic: ["Romance", "Fiction", "Classics"],
-    adventurous: ["Adventure", "Fantasy", "Sci-Fi", "Travel"]
-  };
-  
-  return moodMap[mood.toLowerCase()] || ["Fiction", "General"];
-};
+export default AIChatbot;
