@@ -2,25 +2,31 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Star, ShoppingCart, Heart, Share2, BookOpen, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Star, ShoppingCart, Heart, Share2, BookOpen, MessageSquare, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import Navbar from '@/components/Navbar';
+import BookCard from '@/components/BookCard';
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
+import { useRecentlyViewed } from '@/hooks/use-personalization';
 import { showError, showSuccess } from '@/utils/toast';
+import { generateReviewSummary } from '@/lib/gemini';
 
 const BookDetails = () => {
   const { id } = useParams();
   const { user } = useAuth();
   const { addToCart } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
+  const { addViewedBook } = useRecentlyViewed();
   
   const [book, setBook] = useState<any>(null);
   const [reviews, setReviews] = useState<any[]>([]);
+  const [relatedBooks, setRelatedBooks] = useState<any[]>([]);
+  const [reviewSummary, setReviewSummary] = useState('');
   const [loading, setLoading] = useState(true);
   const [newReview, setNewReview] = useState({ rating: 5, comment: '' });
 
@@ -29,12 +35,31 @@ const BookDetails = () => {
   }, [id]);
 
   const fetchBookData = async () => {
+    setLoading(true);
     const [bookRes, reviewsRes] = await Promise.all([
       supabase.from('books').select('*').eq('id', id).single(),
       supabase.from('reviews').select('*, user_profiles(full_name)').eq('book_id', id)
     ]);
 
-    if (bookRes.data) setBook(bookRes.data);
+    if (bookRes.data) {
+      setBook(bookRes.data);
+      addViewedBook(bookRes.data);
+      
+      // Fetch related books
+      const { data: related } = await supabase
+        .from('books')
+        .select('*')
+        .eq('category', bookRes.data.category)
+        .neq('id', id)
+        .limit(4);
+      setRelatedBooks(related || []);
+
+      // Generate AI Summary
+      if (reviewsRes.data && reviewsRes.data.length > 0) {
+        const summary = await generateReviewSummary(reviewsRes.data);
+        setReviewSummary(summary);
+      }
+    }
     setReviews(reviewsRes.data || []);
     setLoading(false);
   };
@@ -139,6 +164,32 @@ const BookDetails = () => {
               </div>
             </div>
           </div>
+
+          {/* AI Review Summary */}
+          {reviewSummary && (
+            <section className="max-w-3xl mb-32">
+              <div className="glass-dark p-8 rounded-[32px] border border-white/10 relative overflow-hidden">
+                <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/5 rounded-full blur-2xl" />
+                <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                  <Sparkles size={20} className="text-white/40" />
+                  What readers are saying
+                </h3>
+                <p className="text-white/70 leading-relaxed italic">
+                  "{reviewSummary}"
+                </p>
+              </div>
+            </section>
+          )}
+
+          {/* Readers Also Enjoyed */}
+          {relatedBooks.length > 0 && (
+            <section className="mb-32">
+              <h2 className="text-3xl font-bold mb-12">Readers Also Enjoyed</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                {relatedBooks.map(rb => <BookCard key={rb.id} {...rb} />)}
+              </div>
+            </section>
+          )}
 
           {/* Reviews Section */}
           <section className="max-w-3xl">

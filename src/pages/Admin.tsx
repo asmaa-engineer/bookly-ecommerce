@@ -8,15 +8,17 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Trash2, Edit, Users, ShoppingCart, Book, BarChart3 } from 'lucide-react';
+import { Plus, Trash2, Edit, Users, ShoppingCart, Book, BarChart3, Sparkles, Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { showSuccess, showError } from '@/utils/toast';
+import { generateDescription } from '@/lib/gemini';
 
 const Admin = () => {
   const [books, setBooks] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [newBook, setNewBook] = useState({ title: '', author: '', price: '', category: '', description: '', image_url: '', stock_count: 0 });
 
   useEffect(() => {
@@ -33,6 +35,17 @@ const Admin = () => {
     setOrders(ordersRes.data || []);
     setUsers(usersRes.data || []);
     setLoading(false);
+  };
+
+  const handleGenerateAI = async () => {
+    if (!newBook.title || !newBook.author) {
+      return showError("Please enter title and author first");
+    }
+    setIsGenerating(true);
+    const desc = await generateDescription(newBook.title, newBook.author);
+    setNewBook(prev => ({ ...prev, description: desc }));
+    setIsGenerating(false);
+    showSuccess("AI Description generated!");
   };
 
   const handleAddBook = async (e: React.FormEvent) => {
@@ -96,7 +109,23 @@ const Admin = () => {
                 <div className="space-y-2"><Label>Price</Label><Input type="number" step="0.01" value={newBook.price} onChange={e => setNewBook({...newBook, price: e.target.value})} className="bg-white/5 border-white/10" required /></div>
                 <div className="space-y-2"><Label>Category</Label><Input value={newBook.category} onChange={e => setNewBook({...newBook, category: e.target.value})} className="bg-white/5 border-white/10" required /></div>
                 <div className="space-y-2 md:col-span-2"><Label>Image URL</Label><Input value={newBook.image_url} onChange={e => setNewBook({...newBook, image_url: e.target.value})} className="bg-white/5 border-white/10" required /></div>
-                <div className="space-y-2 md:col-span-2"><Label>Description</Label><Textarea value={newBook.description} onChange={e => setNewBook({...newBook, description: e.target.value})} className="bg-white/5 border-white/10" required /></div>
+                <div className="space-y-2 md:col-span-2">
+                  <div className="flex justify-between items-center mb-2">
+                    <Label>Description</Label>
+                    <Button 
+                      type="button" 
+                      variant="ghost" 
+                      size="sm" 
+                      className="text-white/40 hover:text-white gap-2"
+                      onClick={handleGenerateAI}
+                      disabled={isGenerating}
+                    >
+                      {isGenerating ? <Loader2 className="animate-spin" size={14} /> : <Sparkles size={14} />}
+                      Generate with AI
+                    </Button>
+                  </div>
+                  <Textarea value={newBook.description} onChange={e => setNewBook({...newBook, description: e.target.value})} className="bg-white/5 border-white/10 min-h-[120px]" required />
+                </div>
                 <Button type="submit" className="md:col-span-2 bg-white text-black hover:bg-white/90 rounded-2xl h-12 font-bold"><Plus className="mr-2" /> Add Book</Button>
               </form>
             </div>

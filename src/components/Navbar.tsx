@@ -2,9 +2,8 @@
 
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingCart, User as UserIcon, Heart, Search, BookOpen, LogOut } from 'lucide-react';
+import { ShoppingCart, User as UserIcon, Heart, BookOpen, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
   DropdownMenu, 
@@ -17,6 +16,8 @@ import {
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
 import { useAuth } from '@/context/AuthContext';
+import SmartSearch from './SmartSearch';
+import NotificationCenter from './NotificationCenter';
 
 const Navbar = () => {
   const { totalItems } = useCart();
@@ -39,7 +40,6 @@ const Navbar = () => {
               alt="Logo" 
               className="w-full h-full object-cover"
               onError={(e) => {
-                // Fallback to icon if image is missing
                 e.currentTarget.style.display = 'none';
                 e.currentTarget.parentElement?.classList.add('bg-white');
               }}
@@ -61,20 +61,12 @@ const Navbar = () => {
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="relative hidden lg:block">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" size={16} />
-            <Input 
-              placeholder="Search books..." 
-              className="bg-white/5 border-white/10 pl-10 w-64 rounded-full focus:ring-white/20"
-            />
+          <div className="hidden lg:block">
+            <SmartSearch />
           </div>
           
           <div className="flex items-center gap-2">
-            <Link to="/wishlist">
-              <Button variant="ghost" size="icon" className="rounded-full hover:bg-white/10">
-                <Heart size={20} />
-              </Button>
-            </Link>
+            <NotificationCenter />
             <Link to="/cart">
               <Button variant="ghost" size="icon" className="rounded-full hover:bg-white/10 relative">
                 <ShoppingCart size={20} />
@@ -109,9 +101,11 @@ const Navbar = () => {
                   <DropdownMenuItem asChild className="focus:bg-white/10 focus:text-white cursor-pointer">
                     <Link to="/profile">Profile</Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild className="focus:bg-white/10 focus:text-white cursor-pointer">
-                    <Link to="/orders">My Orders</Link>
-                  </DropdownMenuItem>
+                  {user.user_metadata?.role === 'admin' && (
+                    <DropdownMenuItem asChild className="focus:bg-white/10 focus:text-white cursor-pointer">
+                      <Link to="/admin">Admin Dashboard</Link>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuSeparator className="bg-white/10" />
                   <DropdownMenuItem onClick={handleLogout} className="focus:bg-red-500/20 focus:text-red-500 cursor-pointer">
                     <LogOut className="mr-2 h-4 w-4" />
