@@ -8,6 +8,7 @@ import { ArrowRight, Sparkles, BookOpen } from 'lucide-react';
 
 const FEATURED_BOOKS = [
   {
+    id: "1",
     title: "The Echoes of Silence",
     author: "Elena Thorne",
     price: 24.99,
@@ -16,6 +17,7 @@ const FEATURED_BOOKS = [
     rating: 4.8
   },
   {
+    id: "2",
     title: "Digital Frontiers",
     author: "Marcus Chen",
     price: 19.99,
@@ -24,6 +26,7 @@ const FEATURED_BOOKS = [
     rating: 4.5
   },
   {
+    id: "3",
     title: "Midnight in Kyoto",
     author: "Satoshi Nakamoto",
     price: 22.50,
@@ -32,6 +35,7 @@ const FEATURED_BOOKS = [
     rating: 4.9
   },
   {
+    id: "4",
     title: "The Art of Simplicity",
     author: "Sarah Jenkins",
     price: 15.00,
@@ -90,8 +94,8 @@ const Index = () => {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {FEATURED_BOOKS.map((book, index) => (
-              <BookCard key={index} {...book} />
+            {FEATURED_BOOKS.map((book) => (
+              <BookCard key={book.id} {...book} />
             ))}
           </div>
         </section>
