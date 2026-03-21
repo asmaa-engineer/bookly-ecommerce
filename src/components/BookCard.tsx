@@ -1,8 +1,8 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, ShoppingCart, Star, StarHalf } from 'lucide-react';
+import { Heart, ShoppingCart, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useCart } from '@/context/CartContext';
@@ -14,38 +14,30 @@ interface BookCardProps {
   title: string;
   author: string;
   price: number;
-  image_url?: string;
-  image?: string;
+  cover_image?: string;
   category: string;
   rating: number;
   review_count?: number;
 }
 
-const BookCard = ({ id, title, author, price, image_url, image, category, rating, review_count = 12 }: BookCardProps) => {
+const BookCard = ({ id, title, author, price, cover_image, category, rating, review_count = 12 }: BookCardProps) => {
   const { addToCart } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
+  const [imgError, setImgError] = useState(false);
   
   const isWishlisted = isInWishlist(id);
-  const displayImage = image_url || image || '/placeholder.svg';
-
-  const renderStars = (rating: number) => {
-    return Array.from({ length: 5 }).map((_, i) => (
-      <Star 
-        key={i} 
-        size={14} 
-        className={cn(i < Math.floor(rating) ? "text-yellow-500 fill-yellow-500" : "text-white/20")} 
-      />
-    ));
-  };
+  const fallbackImage = "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=400&h=600&fit=crop";
+  const displayImage = imgError || !cover_image ? fallbackImage : cover_image;
 
   return (
     <div className="group relative glass-card rounded-[32px] p-4 transition-all duration-500 hover:-translate-y-2">
       <Link to={`/book/${id}`} className="block">
-        <div className="relative aspect-[2/3] overflow-hidden rounded-[24px] mb-4 shadow-2xl">
+        <div className="relative aspect-[2/3] overflow-hidden rounded-[24px] mb-4 shadow-2xl bg-white/5">
           <img 
             src={displayImage} 
             alt={title} 
             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+            onError={() => setImgError(true)}
             loading="lazy"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -74,7 +66,9 @@ const BookCard = ({ id, title, author, price, image_url, image, category, rating
 
       <div className="space-y-2 px-1">
         <div className="flex items-center gap-1 mb-1">
-          {renderStars(rating)}
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Star key={i} size={14} className={cn(i < Math.floor(rating) ? "text-yellow-500 fill-yellow-500" : "text-white/20")} />
+          ))}
           <span className="text-[10px] text-white/40 font-bold ml-1">({review_count})</span>
         </div>
         

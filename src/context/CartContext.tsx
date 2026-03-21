@@ -37,14 +37,14 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const fetchCart = async () => {
     const { data, error } = await supabase
       .from('cart_items')
-      .select('*, books(title, price, image_url)');
+      .select('*, books(title, price, cover_image)');
     
     if (data) {
       setCart(data.map(item => ({
         id: item.book_id,
         title: item.books.title,
         price: item.books.price,
-        image: item.books.image_url,
+        image: item.books.cover_image || "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=400&h=600&fit=crop",
         quantity: item.quantity
       })));
     }

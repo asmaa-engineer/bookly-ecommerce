@@ -19,7 +19,7 @@ const Admin = () => {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [newBook, setNewBook] = useState({ title: '', author: '', price: '', category: '', description: '', image_url: '', stock_count: 0 });
+  const [newBook, setNewBook] = useState({ title: '', author: '', price: '', category: '', description: '', cover_image: '', stock_count: 0 });
 
   useEffect(() => {
     fetchData();
@@ -55,7 +55,7 @@ const Admin = () => {
     else {
       showSuccess('Book added successfully');
       fetchData();
-      setNewBook({ title: '', author: '', price: '', category: '', description: '', image_url: '', stock_count: 0 });
+      setNewBook({ title: '', author: '', price: '', category: '', description: '', cover_image: '', stock_count: 0 });
     }
   };
 
@@ -108,7 +108,7 @@ const Admin = () => {
                 <div className="space-y-2"><Label>Author</Label><Input value={newBook.author} onChange={e => setNewBook({...newBook, author: e.target.value})} className="bg-white/5 border-white/10" required /></div>
                 <div className="space-y-2"><Label>Price</Label><Input type="number" step="0.01" value={newBook.price} onChange={e => setNewBook({...newBook, price: e.target.value})} className="bg-white/5 border-white/10" required /></div>
                 <div className="space-y-2"><Label>Category</Label><Input value={newBook.category} onChange={e => setNewBook({...newBook, category: e.target.value})} className="bg-white/5 border-white/10" required /></div>
-                <div className="space-y-2 md:col-span-2"><Label>Image URL</Label><Input value={newBook.image_url} onChange={e => setNewBook({...newBook, image_url: e.target.value})} className="bg-white/5 border-white/10" required /></div>
+                <div className="space-y-2 md:col-span-2"><Label>Cover Image URL</Label><Input value={newBook.cover_image} onChange={e => setNewBook({...newBook, cover_image: e.target.value})} className="bg-white/5 border-white/10" required /></div>
                 <div className="space-y-2 md:col-span-2">
                   <div className="flex justify-between items-center mb-2">
                     <Label>Description</Label>

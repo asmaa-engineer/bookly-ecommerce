@@ -2,10 +2,9 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Star, ShoppingCart, Heart, Share2, BookOpen, MessageSquare, Sparkles } from 'lucide-react';
+import { ArrowLeft, Star, ShoppingCart, Heart, Share2, BookOpen, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
 import Navbar from '@/components/Navbar';
 import BookCard from '@/components/BookCard';
 import { useCart } from '@/context/CartContext';
@@ -13,7 +12,6 @@ import { useWishlist } from '@/context/WishlistContext';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useRecentlyViewed } from '@/hooks/use-personalization';
-import { showError, showSuccess } from '@/utils/toast';
 import { generateReviewSummary } from '@/lib/gemini';
 
 const BookDetails = () => {
@@ -28,7 +26,7 @@ const BookDetails = () => {
   const [relatedBooks, setRelatedBooks] = useState<any[]>([]);
   const [reviewSummary, setReviewSummary] = useState('');
   const [loading, setLoading] = useState(true);
-  const [newReview, setNewReview] = useState({ rating: 5, comment: '' });
+  const [imgError, setImgError] = useState(false);
 
   useEffect(() => {
     fetchBookData();
@@ -59,6 +57,8 @@ const BookDetails = () => {
   if (!book) return <div className="min-h-screen bg-black text-white flex items-center justify-center">Book not found</div>;
 
   const isWishlisted = isInWishlist(book.id);
+  const fallbackImage = "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=800&h=1200&fit=crop";
+  const displayImage = imgError || !book.cover_image ? fallbackImage : book.cover_image;
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -74,8 +74,13 @@ const BookDetails = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-24 items-start mb-40">
             <div className="relative group">
               <div className="absolute -inset-10 bg-white/5 rounded-[60px] blur-[80px] group-hover:bg-white/10 transition-all duration-700" />
-              <div className="relative aspect-[3/4] rounded-[48px] overflow-hidden glass border-white/10 shadow-2xl">
-                <img src={book.image_url} alt={book.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+              <div className="relative aspect-[3/4] rounded-[48px] overflow-hidden glass border-white/10 shadow-2xl bg-white/5">
+                <img 
+                  src={displayImage} 
+                  alt={book.title} 
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+                  onError={() => setImgError(true)}
+                />
               </div>
             </div>
 
@@ -115,7 +120,7 @@ const BookDetails = () => {
                       variant="outline" 
                       size="icon" 
                       className={`rounded-full w-16 h-16 border-white/10 glass transition-all ${isWishlisted ? 'bg-white text-black' : 'hover:scale-110'}`}
-                      onClick={() => toggleWishlist(book)}
+                      onClick={() => toggleWishlist({ ...book, image: displayImage })}
                     >
                       <Heart size={24} fill={isWishlisted ? "currentColor" : "none"} />
                     </Button>
@@ -125,19 +130,26 @@ const BookDetails = () => {
                   </div>
                 </div>
 
-                <Button 
-                  className="w-full h-20 rounded-[32px] bg-white text-black hover:bg-white/90 text-2xl font-black uppercase tracking-tighter transition-transform hover:scale-[1.02]"
-                  onClick={() => addToCart({ id: book.id, title: book.title, price: book.price, image: book.image_url })}
-                  disabled={book.stock_count === 0}
-                >
-                  <ShoppingCart className="mr-4" size={28} />
-                  {book.stock_count > 0 ? 'Add to Cart' : 'Out of Stock'}
-                </Button>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Button 
+                    className="h-20 rounded-[32px] bg-white text-black hover:bg-white/90 text-2xl font-black uppercase tracking-tighter transition-transform hover:scale-[1.02]"
+                    onClick={() => addToCart({ id: book.id, title: book.title, price: book.price, image: displayImage })}
+                    disabled={book.stock_count === 0}
+                  >
+                    <ShoppingCart className="mr-4" size={28} />
+                    Add to Cart
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    className="h-20 rounded-[32px] border-white/10 glass text-white hover:bg-white/5 text-2xl font-black uppercase tracking-tighter transition-transform hover:scale-[1.02]"
+                  >
+                    Buy Now
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* AI Review Summary */}
           {reviewSummary && (
             <section className="max-w-4xl mb-40">
               <div className="glass p-12 rounded-[48px] border border-white/10 relative overflow-hidden">
@@ -153,7 +165,6 @@ const BookDetails = () => {
             </section>
           )}
 
-          {/* Readers Also Enjoyed */}
           {relatedBooks.length > 0 && (
             <section className="mb-40">
               <h2 className="text-4xl font-black mb-16 uppercase tracking-tighter">Readers Also Enjoyed</h2>
