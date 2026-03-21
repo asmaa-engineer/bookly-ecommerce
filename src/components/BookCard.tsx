@@ -1,0 +1,56 @@
+"use client";
+
+import React from 'react';
+import { Heart, ShoppingCart, Star } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+
+interface BookCardProps {
+  title: string;
+  author: string;
+  price: number;
+  image: string;
+  category: string;
+  rating: number;
+}
+
+const BookCard = ({ title, author, price, image, category, rating }: BookCardProps) => {
+  return (
+    <div className="group relative glass-dark rounded-3xl p-4 transition-all duration-500 hover:-translate-y-2 hover:shadow-white/5">
+      <div className="relative aspect-[3/4] overflow-hidden rounded-2xl mb-4">
+        <img 
+          src={image} 
+          alt={title} 
+          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+        />
+        <div className="absolute top-3 right-3">
+          <Button size="icon" variant="secondary" className="rounded-full bg-black/40 backdrop-blur-md border-white/10 hover:bg-white hover:text-black transition-colors">
+            <Heart size={18} />
+          </Button>
+        </div>
+        <Badge className="absolute bottom-3 left-3 bg-white/10 backdrop-blur-md border-white/10 text-white">
+          {category}
+        </Badge>
+      </div>
+
+      <div className="space-y-2">
+        <div className="flex items-center gap-1 text-yellow-500">
+          <Star size={14} fill="currentColor" />
+          <span className="text-xs font-medium text-white/60">{rating}</span>
+        </div>
+        <h3 className="font-bold text-lg leading-tight line-clamp-1">{title}</h3>
+        <p className="text-sm text-white/40">{author}</p>
+        
+        <div className="flex items-center justify-between pt-2">
+          <span className="text-xl font-bold">${price}</span>
+          <Button size="sm" className="rounded-full bg-white text-black hover:bg-white/90">
+            <ShoppingCart size={16} className="mr-2" />
+            Add
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default BookCard;
