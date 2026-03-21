@@ -7,15 +7,50 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { BookOpen, Github, Mail } from 'lucide-react';
 import Navbar from '@/components/Navbar';
+import { supabase } from '@/lib/supabase';
+import { showError, showSuccess } from '@/utils/toast';
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock login
-    navigate('/');
+    setLoading(true);
+
+    try {
+      if (isLogin) {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        showSuccess('Welcome back!');
+      } else {
+        const { error } = await supabase.auth.signUp({ email, password });
+        if (error) throw error;
+        showSuccess('Check your email for the confirmation link!');
+      }
+      navigate('/');
+    } catch (error: any) {
+      showError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin
+        }
+      });
+      if (error) throw error;
+    } catch (error: any) {
+      showError(error.message);
+    }
   };
 
   return (
@@ -38,7 +73,7 @@ const Auth = () => {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6 relative z-10">
+          <form onSubmit={handleEmailAuth} className="space-y-6 relative z-10">
             <div className="space-y-2">
               <Label htmlFor="email">Email Address</Label>
               <Input 
@@ -46,6 +81,8 @@ const Auth = () => {
                 type="email" 
                 placeholder="name@example.com" 
                 className="bg-white/5 border-white/10 rounded-2xl h-12 focus:ring-white/20"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>
@@ -56,12 +93,18 @@ const Auth = () => {
                 type="password" 
                 placeholder="••••••••" 
                 className="bg-white/5 border-white/10 rounded-2xl h-12 focus:ring-white/20"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 required
               />
             </div>
 
-            <Button type="submit" className="w-full h-12 rounded-2xl bg-white text-black hover:bg-white/90 font-bold text-lg">
-              {isLogin ? 'Sign In' : 'Sign Up'}
+            <Button 
+              type="submit" 
+              disabled={loading}
+              className="w-full h-12 rounded-2xl bg-white text-black hover:bg-white/90 font-bold text-lg"
+            >
+              {loading ? 'Processing...' : (isLogin ? 'Sign In' : 'Sign Up')}
             </Button>
 
             <div className="relative py-4">
@@ -73,14 +116,15 @@ const Auth = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <Button variant="outline" className="h-12 rounded-2xl border-white/10 glass hover:bg-white/5">
+            <div className="grid grid-cols-1 gap-4">
+              <Button 
+                type="button"
+                variant="outline" 
+                onClick={handleGoogleLogin}
+                className="h-12 rounded-2xl border-white/10 glass hover:bg-white/5"
+              >
                 <Mail className="mr-2 h-4 w-4" />
-                Google
-              </Button>
-              <Button variant="outline" className="h-12 rounded-2xl border-white/10 glass hover:bg-white/5">
-                <Github className="mr-2 h-4 w-4" />
-                Github
+                Continue with Google
               </Button>
             </div>
           </form>
