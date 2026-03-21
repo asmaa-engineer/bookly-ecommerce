@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Bot, X, Send, Sparkles, MessageSquare, Loader2 } from 'lucide-react';
+import { Bot, X, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -42,9 +42,11 @@ const AIChatbot = () => {
     setIsTyping(true);
 
     try {
+      // Get AI response with intent and keywords
       const aiResult = await chatWithAI(text, messages);
       let foundBooks: any[] = [];
 
+      // If AI wants to search for books
       if (aiResult.intent === "search" && aiResult.keywords) {
         const { data } = await supabase
           .from('books')
@@ -54,21 +56,24 @@ const AIChatbot = () => {
         foundBooks = data || [];
       }
 
-      setTimeout(() => {
-        setIsTyping(false);
-        const aiResponse: Message = { 
-          role: 'ai', 
-          content: foundBooks.length > 0 
-            ? `I found these books for you:` 
-            : aiResult.text,
-          books: foundBooks.length > 0 ? foundBooks : undefined
-        };
-        setMessages(prev => [...prev, aiResponse]);
-      }, 800);
+      setIsTyping(false);
+      
+      const aiResponse: Message = { 
+        role: 'ai', 
+        content: foundBooks.length > 0 
+          ? aiResult.text || `I found these ${aiResult.keywords} books for you:` 
+          : aiResult.text,
+        books: foundBooks.length > 0 ? foundBooks : undefined
+      };
+      setMessages(prev => [...prev, aiResponse]);
 
     } catch (error) {
+      console.error('Chat error:', error);
       setIsTyping(false);
-      setMessages(prev => [...prev, { role: 'ai', content: "Sorry, I'm having trouble connecting right now." }]);
+      setMessages(prev => [...prev, { 
+        role: 'ai', 
+        content: "Sorry, I'm having trouble connecting right now. Please try again." 
+      }]);
     }
   };
 
@@ -83,7 +88,7 @@ const AIChatbot = () => {
           <span className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-black" />
         </Button>
       ) : (
-        <div className="w-[400px] h-[600px] glass-dark rounded-[40px] flex flex-col overflow-hidden border border-white/10 shadow-2xl animate-in slide-in-from-bottom-4">
+        <div className="w-[400px] h-[600px] bg-black/90 backdrop-blur-xl rounded-[40px] flex flex-col overflow-hidden border border-white/10 shadow-2xl">
           {/* Header */}
           <div className="p-6 border-b border-white/10 flex items-center justify-between bg-white/5">
             <div className="flex items-center gap-3">
@@ -91,7 +96,7 @@ const AIChatbot = () => {
                 <Bot className="text-black" size={24} />
               </div>
               <div>
-                <h3 className="font-black text-sm uppercase tracking-tight">Bookly AI</h3>
+                <h3 className="font-black text-sm uppercase tracking-tight text-white">Bookly AI</h3>
                 <div className="flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
                   <p className="text-[10px] text-white/40 uppercase font-bold tracking-widest">Always Learning</p>
@@ -99,7 +104,7 @@ const AIChatbot = () => {
               </div>
             </div>
             <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="rounded-full hover:bg-white/10">
-              <X size={20} />
+              <X size={20} className="text-white" />
             </Button>
           </div>
 
@@ -111,16 +116,26 @@ const AIChatbot = () => {
                   <div className={`max-w-[85%] p-4 rounded-[24px] text-sm leading-relaxed ${
                     msg.role === 'user' 
                       ? 'bg-white text-black font-medium rounded-tr-none' 
-                      : 'bg-white/5 text-white/80 border border-white/10 rounded-tl-none'
+                      : 'bg-white/10 text-white/90 border border-white/10 rounded-tl-none'
                   }`}>
                     {msg.content}
                   </div>
                   
                   {msg.books && msg.books.length > 0 && (
-                    <div className="w-full mt-4 grid grid-cols-1 gap-4">
+                    <div className="w-full mt-4 space-y-3">
                       {msg.books.map(book => (
-                        <div key={book.id} className="scale-95 origin-left">
-                          <BookCard {...book} />
+                        <div key={book.id} className="bg-white/5 rounded-xl p-3 flex gap-3 border border-white/10">
+                          {book.cover_image && (
+                            <img src={book.cover_image} alt={book.title} className="w-12 h-16 object-cover rounded-lg" />
+                          )}
+                          <div className="flex-1">
+                            <h4 className="font-bold text-sm text-white">{book.title}</h4>
+                            <p className="text-xs text-white/60">{book.author}</p>
+                            <p className="text-sm font-bold text-white mt-1">${book.price}</p>
+                          </div>
+                          <Button size="sm" className="bg-white text-black hover:bg-white/90 text-xs">
+                            Add to Cart
+                          </Button>
                         </div>
                       ))}
                     </div>
@@ -130,7 +145,7 @@ const AIChatbot = () => {
               
               {isTyping && (
                 <div className="flex justify-start">
-                  <div className="bg-white/5 p-4 rounded-[24px] rounded-tl-none border border-white/10 flex gap-1.5">
+                  <div className="bg-white/10 p-4 rounded-[24px] rounded-tl-none border border-white/10 flex gap-1.5">
                     <div className="w-1.5 h-1.5 bg-white/40 rounded-full animate-bounce" />
                     <div className="w-1.5 h-1.5 bg-white/40 rounded-full animate-bounce [animation-delay:0.2s]" />
                     <div className="w-1.5 h-1.5 bg-white/40 rounded-full animate-bounce [animation-delay:0.4s]" />
@@ -147,7 +162,7 @@ const AIChatbot = () => {
                 <button 
                   key={q} 
                   onClick={() => handleSend(q)}
-                  className="whitespace-nowrap px-4 py-2 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold uppercase tracking-widest hover:bg-white hover:text-black transition-all"
+                  className="whitespace-nowrap px-4 py-2 rounded-full bg-white/10 border border-white/20 text-[10px] font-bold uppercase tracking-widest text-white/80 hover:bg-white hover:text-black transition-all"
                 >
                   {q}
                 </button>
@@ -156,7 +171,7 @@ const AIChatbot = () => {
             <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="relative">
               <Input 
                 placeholder="Ask Bookly AI..." 
-                className="bg-white/5 border-white/10 rounded-2xl pr-14 h-14 focus:ring-white/20 text-sm"
+                className="bg-white/10 border-white/20 rounded-2xl pr-14 h-14 focus:ring-white/30 text-white placeholder:text-white/40"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
               />
