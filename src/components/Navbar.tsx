@@ -34,17 +34,18 @@ const Navbar = () => {
     <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-4">
       <div className="max-w-7xl mx-auto glass rounded-full px-8 py-3 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2 group">
-          <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center group-hover:scale-110 transition-transform overflow-hidden">
+          <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center group-hover:scale-110 transition-transform overflow-hidden relative">
             <img 
               src="/images/logo.png" 
               alt="Logo" 
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain p-1"
               onError={(e) => {
                 e.currentTarget.style.display = 'none';
-                e.currentTarget.parentElement?.classList.add('bg-white');
+                const icon = e.currentTarget.nextElementSibling as HTMLElement;
+                if (icon) icon.style.display = 'block';
               }}
             />
-            <BookOpen className="text-black absolute" size={20} />
+            <BookOpen className="text-black hidden" size={20} />
           </div>
           <span className="text-xl font-bold tracking-tighter">BOOKLY</span>
         </Link>
