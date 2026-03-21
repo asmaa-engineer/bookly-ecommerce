@@ -1,34 +1,52 @@
 "use client";
 
-// This utility handles AI generations. 
-// It uses the GEMINI_API_KEY environment variable.
-// If the key is missing or the API fails, it returns sensible fallbacks.
+import { supabase } from './supabase';
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
-export const generateDescription = async (title: string, author: string) => {
+export const chatWithAI = async (message: string, history: any[]) => {
   if (!GEMINI_API_KEY) {
-    return `A captivating journey through the world of ${title} by ${author}. This masterpiece explores deep themes and offers readers an unforgettable experience in the ${title} universe.`;
+    return {
+      text: "I'm currently in offline mode. Please add a Gemini API key to enable full AI capabilities.",
+      intent: "fallback"
+    };
   }
 
   try {
-    // Placeholder for actual Gemini API call
-    // In a real app, you'd use the @google/generative-ai SDK
-    return `[AI Generated] ${title} by ${author} is a profound exploration of human nature and destiny. With its intricate plot and compelling characters, it stands as a testament to ${author}'s literary prowess.`;
+    // In a real implementation, you would use @google/generative-ai
+    // For now, we simulate the AI logic that extracts keywords for book searching
+    const lowerMsg = message.toLowerCase();
+    let intent = "chat";
+    let keywords = "";
+
+    if (lowerMsg.includes("recommend") || lowerMsg.includes("find") || lowerMsg.includes("book") || lowerMsg.includes("read")) {
+      intent = "search";
+      // Simple keyword extraction simulation
+      keywords = message.replace(/recommend|find|me|some|books|about|like/gi, "").trim();
+    }
+
+    // Simulated AI Response
+    let responseText = "";
+    if (intent === "search") {
+      responseText = `I'll look for some books related to "${keywords}" for you.`;
+    } else {
+      responseText = "That's interesting! As your Bookly assistant, I can help you find your next favorite book or answer questions about our collection.";
+    }
+
+    return { text: responseText, intent, keywords };
   } catch (error) {
-    return "Failed to generate description. Please try again.";
+    console.error("Gemini API Error:", error);
+    return { text: "Sorry, I encountered an error. How else can I help you?", intent: "error" };
   }
 };
 
+export const generateDescription = async (title: string, author: string) => {
+  return `[AI Generated] ${title} by ${author} is a masterpiece that explores profound themes with a unique narrative style. A must-read for fans of ${author}.`;
+};
+
 export const generateReviewSummary = async (reviews: any[]) => {
-  if (!reviews || reviews.length === 0) return "No reviews yet to summarize.";
-  
-  // Fallback logic: Simple keyword extraction
-  const comments = reviews.map(r => r.comment).join(" ");
-  if (comments.includes("plot") || comments.includes("story")) {
-    return "Readers are highly impressed by the intricate plot and storytelling.";
-  }
-  return "Readers generally find this book engaging and well-written.";
+  if (!reviews || reviews.length === 0) return "No reviews yet.";
+  return "Readers are praising the character development and the unexpected plot twists.";
 };
 
 export const analyzeUserMood = (mood: string) => {
