@@ -1,7 +1,5 @@
-// src/lib/gemini.ts
-import { GoogleGenerativeAI } from "@google/generative-ai";
+// src/lib/gemini.ts - بدون استخدام الحزمة الخارجية
 
-// Next.js uses process.env, not import.meta.env
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 export interface AIResponse {
@@ -10,18 +8,42 @@ export interface AIResponse {
   keywords?: string;
 }
 
+// دالة للتواصل مع Gemini API مباشرة باستخدام fetch
+async function callGeminiAPI(prompt: string): Promise<string> {
+  if (!GEMINI_API_KEY) {
+    throw new Error("No API key");
+  }
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`;
+  
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      contents: [{
+        parts: [{ text: prompt }]
+      }]
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(`API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+}
+
 export const chatWithAI = async (message: string, history: any[]): Promise<AIResponse> => {
-  // Check if API key is available
+  // Offline mode if no API key
   if (!GEMINI_API_KEY || GEMINI_API_KEY === '') {
     console.log("No Gemini API key found - using offline mode");
     return offlineResponse(message);
   }
 
   try {
-    // Initialize Gemini AI
-    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
-    
     const lowerMsg = message.toLowerCase();
     
     const prompt = `You are Bookly AI, a helpful book recommendation assistant.
@@ -40,8 +62,7 @@ Examples:
 
 Return ONLY the JSON, no other text.`;
 
-    const result = await model.generateContent(prompt);
-    const responseText = result.response.text();
+    const responseText = await callGeminiAPI(prompt);
     
     // Extract JSON from response
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
@@ -117,10 +138,9 @@ export const generateDescription = async (title: string, author: string): Promis
   }
   
   try {
-    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
-    const result = await model.generateContent(`Generate a short, engaging book description for "${title}" by ${author}. Make it 2-3 sentences.`);
-    return result.response.text();
+    const prompt = `Generate a short, engaging book description for "${title}" by ${author}. Make it 2-3 sentences.`;
+    const response = await callGeminiAPI(prompt);
+    return response;
   } catch {
     return `${title} by ${author} is a wonderful book that explores deep themes with beautiful prose. Highly recommended!`;
   }
@@ -134,11 +154,10 @@ export const generateReviewSummary = async (reviews: any[]): Promise<string> => 
   }
   
   try {
-    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
     const reviewTexts = reviews.slice(0, 5).map(r => r.comment).join(". ");
-    const result = await model.generateContent(`Summarize what readers are saying about this book in 1 sentence based on these reviews: ${reviewTexts}`);
-    return result.response.text();
+    const prompt = `Summarize what readers are saying about this book in 1 sentence based on these reviews: ${reviewTexts}`;
+    const response = await callGeminiAPI(prompt);
+    return response;
   } catch {
     return "Readers are enjoying this book! Check out the reviews for more details.";
   }
