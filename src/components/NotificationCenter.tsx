@@ -1,12 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Bell, Sparkles, Heart, Tag, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
-  DropdownMenuItem, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -15,8 +14,8 @@ import { useAuth } from '@/context/AuthContext';
 const NotificationCenter = () => {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState([
-    { id: 1, type: 'ai', title: 'New AI Picks', message: 'We found 4 new books you might love!', time: '2m ago', read: false },
-    { id: 2, type: 'wishlist', title: 'Price Drop', message: 'A book in your wishlist is now 20% off!', time: '1h ago', read: false },
+    { id: 1, type: 'ai', title: 'New AI Picks', message: 'We found 4 new books you might love based on your history!', time: '2m ago', read: false },
+    { id: 2, type: 'wishlist', title: 'Price Drop', message: 'A book in your wishlist is now 20% off for a limited time!', time: '1h ago', read: false },
     { id: 3, type: 'category', title: 'New in Fiction', message: 'Check out the latest arrivals in your favorite category.', time: '5h ago', read: true },
   ]);
 
@@ -28,10 +27,10 @@ const NotificationCenter = () => {
 
   const getIcon = (type: string) => {
     switch (type) {
-      case 'ai': return <Sparkles size={14} className="text-purple-400" />;
-      case 'wishlist': return <Heart size={14} className="text-red-400" />;
-      case 'category': return <Tag size={14} className="text-blue-400" />;
-      default: return <Bell size={14} />;
+      case 'ai': return <Sparkles size={16} className="text-white" />;
+      case 'wishlist': return <Heart size={16} className="text-white" />;
+      case 'category': return <Tag size={16} className="text-white" />;
+      default: return <Bell size={16} />;
     }
   };
 
@@ -40,48 +39,48 @@ const NotificationCenter = () => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="rounded-full hover:bg-white/10 relative">
-          <Bell size={20} />
+        <Button variant="ghost" size="icon" className="rounded-full w-12 h-12 hover:bg-white/10 relative glass">
+          <Bell size={22} />
           {unreadCount > 0 && (
-            <span className="absolute top-2 right-2 w-2 h-2 bg-white rounded-full border-2 border-black" />
+            <span className="absolute top-3 right-3 w-2.5 h-2.5 bg-white rounded-full border-2 border-black" />
           )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-80 glass-dark border-white/10 p-0 overflow-hidden" align="end">
-        <div className="p-4 border-b border-white/10 flex items-center justify-between bg-white/5">
-          <h3 className="font-bold text-sm">Notifications</h3>
-          <span className="text-[10px] uppercase tracking-widest text-white/40">{unreadCount} Unread</span>
+      <DropdownMenuContent className="w-[400px] glass rounded-[32px] border-white/10 p-0 overflow-hidden mt-4" align="end">
+        <div className="p-6 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
+          <h3 className="font-black text-lg uppercase tracking-tighter">Notifications</h3>
+          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">{unreadCount} Unread</span>
         </div>
-        <ScrollArea className="h-[300px]">
+        <ScrollArea className="h-[450px]">
           <div className="divide-y divide-white/5">
             {notifications.map((n) => (
               <div 
                 key={n.id} 
-                className={`p-4 hover:bg-white/5 transition-colors cursor-pointer relative ${!n.read ? 'bg-white/[0.02]' : ''}`}
+                className={`p-6 hover:bg-white/[0.03] transition-colors cursor-pointer relative ${!n.read ? 'bg-white/[0.01]' : ''}`}
                 onClick={() => markAsRead(n.id)}
               >
-                <div className="flex gap-3">
-                  <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center flex-shrink-0">
+                <div className="flex gap-5">
+                  <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center flex-shrink-0 border border-white/10">
                     {getIcon(n.type)}
                   </div>
                   <div className="flex-grow min-w-0">
-                    <div className="flex justify-between items-start mb-1">
-                      <h4 className="font-bold text-xs truncate">{n.title}</h4>
-                      <span className="text-[10px] text-white/20">{n.time}</span>
+                    <div className="flex justify-between items-start mb-1.5">
+                      <h4 className="font-black text-sm uppercase tracking-tight truncate">{n.title}</h4>
+                      <span className="text-[10px] font-bold text-white/20 uppercase">{n.time}</span>
                     </div>
-                    <p className="text-xs text-white/60 leading-relaxed">{n.message}</p>
+                    <p className="text-sm text-white/40 leading-relaxed font-medium">{n.message}</p>
                   </div>
                   {!n.read && (
-                    <div className="w-1.5 h-1.5 bg-white rounded-full mt-1.5" />
+                    <div className="w-2 h-2 bg-white rounded-full mt-2 flex-shrink-0" />
                   )}
                 </div>
               </div>
             ))}
           </div>
         </ScrollArea>
-        <div className="p-3 bg-white/5 border-t border-white/10 text-center">
-          <button className="text-[10px] uppercase tracking-widest font-bold text-white/40 hover:text-white">
-            Clear All
+        <div className="p-4 bg-white/[0.02] border-t border-white/10 text-center">
+          <button className="text-[10px] font-black uppercase tracking-[0.3em] text-white/20 hover:text-white transition-colors">
+            Clear All Notifications
           </button>
         </div>
       </DropdownMenuContent>

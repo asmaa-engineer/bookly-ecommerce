@@ -44,17 +44,8 @@ const BookDetails = () => {
     if (bookRes.data) {
       setBook(bookRes.data);
       addViewedBook(bookRes.data);
-      
-      // Fetch related books
-      const { data: related } = await supabase
-        .from('books')
-        .select('*')
-        .eq('category', bookRes.data.category)
-        .neq('id', id)
-        .limit(4);
+      const { data: related } = await supabase.from('books').select('*').eq('category', bookRes.data.category).neq('id', id).limit(4);
       setRelatedBooks(related || []);
-
-      // Generate AI Summary
       if (reviewsRes.data && reviewsRes.data.length > 0) {
         const summary = await generateReviewSummary(reviewsRes.data);
         setReviewSummary(summary);
@@ -64,26 +55,7 @@ const BookDetails = () => {
     setLoading(false);
   };
 
-  const handleAddReview = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return showError("Please login to leave a review");
-
-    const { error } = await supabase.from('reviews').insert([{
-      user_id: user.id,
-      book_id: id,
-      rating: newReview.rating,
-      comment: newReview.comment
-    }]);
-
-    if (error) showError(error.message);
-    else {
-      showSuccess("Review added!");
-      setNewReview({ rating: 5, comment: '' });
-      fetchBookData();
-    }
-  };
-
-  if (loading) return <div className="min-h-screen bg-black flex items-center justify-center"><div className="w-8 h-8 border-4 border-white/20 border-t-white rounded-full animate-spin" /></div>;
+  if (loading) return <div className="min-h-screen bg-black flex items-center justify-center"><div className="w-12 h-12 border-4 border-white/10 border-t-white rounded-full animate-spin" /></div>;
   if (!book) return <div className="min-h-screen bg-black text-white flex items-center justify-center">Book not found</div>;
 
   const isWishlisted = isInWishlist(book.id);
@@ -94,71 +66,71 @@ const BookDetails = () => {
       
       <main className="pt-32 pb-20 px-6">
         <div className="max-w-7xl mx-auto">
-          <Link to="/catalog" className="inline-flex items-center text-white/40 hover:text-white mb-12 transition-colors">
-            <ArrowLeft className="mr-2" size={20} />
+          <Link to="/catalog" className="inline-flex items-center text-white/40 hover:text-white mb-16 transition-colors font-bold uppercase tracking-widest text-xs">
+            <ArrowLeft className="mr-2" size={16} />
             Back to Catalog
           </Link>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start mb-32">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-24 items-start mb-40">
             <div className="relative group">
-              <div className="absolute -inset-4 bg-white/5 rounded-[40px] blur-2xl group-hover:bg-white/10 transition-all" />
-              <div className="relative aspect-[3/4] rounded-[32px] overflow-hidden glass-dark border-white/10">
-                <img src={book.image_url} alt={book.title} className="w-full h-full object-cover" />
+              <div className="absolute -inset-10 bg-white/5 rounded-[60px] blur-[80px] group-hover:bg-white/10 transition-all duration-700" />
+              <div className="relative aspect-[3/4] rounded-[48px] overflow-hidden glass border-white/10 shadow-2xl">
+                <img src={book.image_url} alt={book.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
               </div>
             </div>
 
-            <div className="space-y-8">
-              <div className="space-y-4">
-                <Badge className="bg-white/10 text-white border-white/10 px-4 py-1 rounded-full">
+            <div className="space-y-10">
+              <div className="space-y-6">
+                <Badge className="bg-white/10 text-white border-white/10 px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em]">
                   {book.category}
                 </Badge>
-                <h1 className="text-5xl md:text-6xl font-bold tracking-tighter leading-tight">
+                <h1 className="text-6xl md:text-8xl font-bold tracking-tighter leading-[0.9] uppercase">
                   {book.title}
                 </h1>
-                <p className="text-2xl text-white/60 font-medium">by {book.author}</p>
+                <p className="text-3xl text-white/40 font-bold tracking-tight">by {book.author}</p>
                 
-                <div className="flex items-center gap-6 pt-2">
+                <div className="flex items-center gap-8 pt-4">
                   <div className="flex items-center gap-2 text-yellow-500">
-                    <Star fill="currentColor" size={20} />
-                    <span className="text-xl font-bold text-white">{book.rating || 'N/A'}</span>
-                    <span className="text-white/40 text-sm">({reviews.length} reviews)</span>
+                    <Star fill="currentColor" size={24} />
+                    <span className="text-2xl font-black text-white">{book.rating || 'N/A'}</span>
+                    <span className="text-white/20 text-sm font-bold">({reviews.length} REVIEWS)</span>
                   </div>
-                  <div className="h-4 w-px bg-white/10" />
-                  <div className="flex items-center gap-2 text-white/60">
-                    <BookOpen size={20} />
-                    <span className="text-sm font-medium">{book.stock_count > 0 ? 'In Stock' : 'Out of Stock'}</span>
+                  <div className="h-6 w-px bg-white/10" />
+                  <div className="flex items-center gap-3 text-white/40">
+                    <BookOpen size={24} />
+                    <span className="text-sm font-black uppercase tracking-widest">{book.stock_count > 0 ? 'In Stock' : 'Out of Stock'}</span>
                   </div>
                 </div>
               </div>
 
-              <p className="text-lg text-white/50 leading-relaxed max-w-xl">
+              <p className="text-xl text-white/40 leading-relaxed max-w-xl font-medium">
                 {book.description}
               </p>
 
-              <div className="pt-8 border-t border-white/10">
-                <div className="flex items-center justify-between mb-8">
-                  <span className="text-4xl font-bold">${book.price}</span>
-                  <div className="flex gap-3">
+              <div className="pt-12 border-t border-white/10">
+                <div className="flex items-center justify-between mb-10">
+                  <span className="text-6xl font-black tracking-tighter">${book.price}</span>
+                  <div className="flex gap-4">
                     <Button 
                       variant="outline" 
                       size="icon" 
-                      className={`rounded-full w-12 h-12 border-white/10 glass ${isWishlisted ? 'bg-white text-black' : ''}`}
+                      className={`rounded-full w-16 h-16 border-white/10 glass transition-all ${isWishlisted ? 'bg-white text-black' : 'hover:scale-110'}`}
                       onClick={() => toggleWishlist(book)}
                     >
-                      <Heart size={20} fill={isWishlisted ? "currentColor" : "none"} />
+                      <Heart size={24} fill={isWishlisted ? "currentColor" : "none"} />
                     </Button>
-                    <Button variant="outline" size="icon" className="rounded-full w-12 h-12 border-white/10 glass">
-                      <Share2 size={20} />
+                    <Button variant="outline" size="icon" className="rounded-full w-16 h-16 border-white/10 glass hover:scale-110">
+                      <Share2 size={24} />
                     </Button>
                   </div>
                 </div>
 
                 <Button 
-                  className="w-full h-16 rounded-2xl bg-white text-black hover:bg-white/90 text-xl font-bold"
+                  className="w-full h-20 rounded-[32px] bg-white text-black hover:bg-white/90 text-2xl font-black uppercase tracking-tighter transition-transform hover:scale-[1.02]"
                   onClick={() => addToCart({ id: book.id, title: book.title, price: book.price, image: book.image_url })}
                   disabled={book.stock_count === 0}
                 >
-                  <ShoppingCart className="mr-3" size={24} />
+                  <ShoppingCart className="mr-4" size={28} />
                   {book.stock_count > 0 ? 'Add to Cart' : 'Out of Stock'}
                 </Button>
               </div>
@@ -167,14 +139,14 @@ const BookDetails = () => {
 
           {/* AI Review Summary */}
           {reviewSummary && (
-            <section className="max-w-3xl mb-32">
-              <div className="glass-dark p-8 rounded-[32px] border border-white/10 relative overflow-hidden">
-                <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/5 rounded-full blur-2xl" />
-                <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-                  <Sparkles size={20} className="text-white/40" />
+            <section className="max-w-4xl mb-40">
+              <div className="glass p-12 rounded-[48px] border border-white/10 relative overflow-hidden">
+                <div className="absolute -top-20 -right-20 w-64 h-64 bg-white/5 rounded-full blur-[100px]" />
+                <h3 className="text-2xl font-black mb-6 flex items-center gap-3 uppercase tracking-tighter">
+                  <Sparkles size={28} className="text-white/40" />
                   What readers are saying
                 </h3>
-                <p className="text-white/70 leading-relaxed italic">
+                <p className="text-2xl text-white/60 leading-relaxed italic font-medium">
                   "{reviewSummary}"
                 </p>
               </div>
@@ -183,72 +155,13 @@ const BookDetails = () => {
 
           {/* Readers Also Enjoyed */}
           {relatedBooks.length > 0 && (
-            <section className="mb-32">
-              <h2 className="text-3xl font-bold mb-12">Readers Also Enjoyed</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            <section className="mb-40">
+              <h2 className="text-4xl font-black mb-16 uppercase tracking-tighter">Readers Also Enjoyed</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
                 {relatedBooks.map(rb => <BookCard key={rb.id} {...rb} />)}
               </div>
             </section>
           )}
-
-          {/* Reviews Section */}
-          <section className="max-w-3xl">
-            <h2 className="text-3xl font-bold mb-12 flex items-center gap-3">
-              <MessageSquare className="text-white/40" />
-              Reader Reviews
-            </h2>
-
-            {user && (
-              <div className="glass-dark p-8 rounded-[32px] mb-12">
-                <h3 className="text-xl font-bold mb-6">Write a Review</h3>
-                <form onSubmit={handleAddReview} className="space-y-6">
-                  <div className="flex gap-2 mb-4">
-                    {[1, 2, 3, 4, 5].map(r => (
-                      <button 
-                        key={r} 
-                        type="button"
-                        onClick={() => setNewReview({...newReview, rating: r})}
-                        className={`p-2 rounded-lg transition-colors ${newReview.rating >= r ? 'text-yellow-500' : 'text-white/10'}`}
-                      >
-                        <Star fill="currentColor" size={24} />
-                      </button>
-                    ))}
-                  </div>
-                  <Textarea 
-                    placeholder="Share your thoughts on this book..." 
-                    className="bg-white/5 border-white/10 rounded-2xl min-h-[120px]"
-                    value={newReview.comment}
-                    onChange={e => setNewReview({...newReview, comment: e.target.value})}
-                    required
-                  />
-                  <Button type="submit" className="bg-white text-black hover:bg-white/90 rounded-xl px-8">
-                    Post Review
-                  </Button>
-                </form>
-              </div>
-            )}
-
-            <div className="space-y-6">
-              {reviews.length > 0 ? reviews.map(review => (
-                <div key={review.id} className="glass-dark p-6 rounded-2xl border border-white/5">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <p className="font-bold">{review.user_profiles?.full_name || 'Anonymous'}</p>
-                      <p className="text-xs text-white/40">{new Date(review.created_at).toLocaleDateString()}</p>
-                    </div>
-                    <div className="flex text-yellow-500">
-                      {Array.from({ length: review.rating }).map((_, i) => (
-                        <Star key={i} size={14} fill="currentColor" />
-                      ))}
-                    </div>
-                  </div>
-                  <p className="text-white/70 leading-relaxed">{review.comment}</p>
-                </div>
-              )) : (
-                <p className="text-white/40 text-center py-12">No reviews yet. Be the first to share your thoughts!</p>
-              )}
-            </div>
-          </section>
         </div>
       </main>
     </div>
