@@ -12,6 +12,7 @@ import Catalog from "./pages/Catalog";
 import BookDetails from "./pages/BookDetails";
 import Profile from "./pages/Profile";
 import Admin from "./pages/Admin";
+import Checkout from "./pages/Checkout";
 import NotFound from "./pages/NotFound";
 import { CartProvider } from "./context/CartContext";
 import { WishlistProvider } from "./context/WishlistContext";
@@ -41,6 +42,7 @@ const App = () => (
                 <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
                 <Route path="/wishlist" element={<ProtectedRoute><Wishlist /></ProtectedRoute>} />
                 <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
                 
                 {/* Admin Routes */}
                 <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
