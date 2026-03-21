@@ -1,48 +1,17 @@
 "use client";
 
 import React from 'react';
+import { Link } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import BookCard from '@/components/BookCard';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Sparkles, BookOpen } from 'lucide-react';
 
 const FEATURED_BOOKS = [
-  {
-    id: "1",
-    title: "The Echoes of Silence",
-    author: "Elena Thorne",
-    price: 24.99,
-    image: "https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=800&auto=format&fit=crop",
-    category: "Fiction",
-    rating: 4.8
-  },
-  {
-    id: "2",
-    title: "Digital Frontiers",
-    author: "Marcus Chen",
-    price: 19.99,
-    image: "https://images.unsplash.com/photo-1589829085413-56de8ae18c73?q=80&w=800&auto=format&fit=crop",
-    category: "Technology",
-    rating: 4.5
-  },
-  {
-    id: "3",
-    title: "Midnight in Kyoto",
-    author: "Satoshi Nakamoto",
-    price: 22.50,
-    image: "https://images.unsplash.com/photo-1543004218-ee141104638e?q=80&w=800&auto=format&fit=crop",
-    category: "Mystery",
-    rating: 4.9
-  },
-  {
-    id: "4",
-    title: "The Art of Simplicity",
-    author: "Sarah Jenkins",
-    price: 15.00,
-    image: "https://images.unsplash.com/photo-1532012197267-da84d127e765?q=80&w=800&auto=format&fit=crop",
-    category: "Lifestyle",
-    rating: 4.7
-  }
+  { id: "1", title: "The Echoes of Silence", author: "Elena Thorne", price: 24.99, image: "https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=800&auto=format&fit=crop", category: "Fiction", rating: 4.8 },
+  { id: "2", title: "Digital Frontiers", author: "Marcus Chen", price: 19.99, image: "https://images.unsplash.com/photo-1589829085413-56de8ae18c73?q=80&w=800&auto=format&fit=crop", category: "Technology", rating: 4.5 },
+  { id: "3", title: "Midnight in Kyoto", author: "Satoshi Nakamoto", price: 22.50, image: "https://images.unsplash.com/photo-1543004218-ee141104638e?q=80&w=800&auto=format&fit=crop", category: "Mystery", rating: 4.9 },
+  { id: "4", title: "The Art of Simplicity", author: "Sarah Jenkins", price: 15.00, image: "https://images.unsplash.com/photo-1532012197267-da84d127e765?q=80&w=800&auto=format&fit=crop", category: "Lifestyle", rating: 4.7 }
 ];
 
 const Index = () => {
@@ -71,13 +40,17 @@ const Index = () => {
           </p>
           
           <div className="flex flex-wrap items-center justify-center gap-4">
-            <Button size="lg" className="rounded-full px-8 h-14 bg-white text-black hover:bg-white/90 text-lg font-bold">
-              Explore Catalog
-              <ArrowRight className="ml-2" size={20} />
-            </Button>
-            <Button size="lg" variant="outline" className="rounded-full px-8 h-14 border-white/10 glass hover:bg-white/5 text-lg">
-              View Wishlist
-            </Button>
+            <Link to="/catalog">
+              <Button size="lg" className="rounded-full px-8 h-14 bg-white text-black hover:bg-white/90 text-lg font-bold">
+                Explore Catalog
+                <ArrowRight className="ml-2" size={20} />
+              </Button>
+            </Link>
+            <Link to="/wishlist">
+              <Button size="lg" variant="outline" className="rounded-full px-8 h-14 border-white/10 glass hover:bg-white/5 text-lg">
+                View Wishlist
+              </Button>
+            </Link>
           </div>
         </section>
 
@@ -88,9 +61,11 @@ const Index = () => {
               <h2 className="text-3xl font-bold tracking-tight mb-2">Featured Picks</h2>
               <p className="text-white/40">Hand-selected stories for your collection.</p>
             </div>
-            <Button variant="link" className="text-white hover:text-white/70">
-              View all books
-            </Button>
+            <Link to="/catalog">
+              <Button variant="link" className="text-white hover:text-white/70">
+                View all books
+              </Button>
+            </Link>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -113,9 +88,11 @@ const Index = () => {
                 Our intelligent system analyzes your reading habits and preferences to suggest 
                 books that resonate with your soul.
               </p>
-              <Button className="rounded-full px-8 h-12 bg-white text-black hover:bg-white/90">
-                Get Started
-              </Button>
+              <Link to="/catalog">
+                <Button className="rounded-full px-8 h-12 bg-white text-black hover:bg-white/90">
+                  Get Started
+                </Button>
+              </Link>
             </div>
             
             <div className="hidden lg:block absolute right-20 top-1/2 -translate-y-1/2 w-80 h-[400px] glass rounded-3xl rotate-6 animate-float">
