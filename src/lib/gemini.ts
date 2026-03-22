@@ -1,6 +1,9 @@
-// src/lib/gemini.ts - بدون استخدام الحزمة الخارجية
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+// Vite uses import.meta.env instead of process.env
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+
+const genAI = GEMINI_API_KEY ? new GoogleGenerativeAI(GEMINI_API_KEY) : null;
 
 export interface AIResponse {
   text: string;
@@ -8,63 +11,32 @@ export interface AIResponse {
   keywords?: string;
 }
 
-// دالة للتواصل مع Gemini API مباشرة باستخدام fetch
-async function callGeminiAPI(prompt: string): Promise<string> {
-  if (!GEMINI_API_KEY) {
-    throw new Error("No API key");
-  }
-
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`;
-  
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      contents: [{
-        parts: [{ text: prompt }]
-      }]
-    })
-  });
-
-  if (!response.ok) {
-    throw new Error(`API error: ${response.status}`);
-  }
-
-  const data = await response.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-}
-
 export const chatWithAI = async (message: string, history: any[]): Promise<AIResponse> => {
-  // Offline mode if no API key
-  if (!GEMINI_API_KEY || GEMINI_API_KEY === '') {
-    console.log("No Gemini API key found - using offline mode");
+  if (!genAI) {
     return offlineResponse(message);
   }
 
   try {
-    const lowerMsg = message.toLowerCase();
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     
     const prompt = `You are Bookly AI, a helpful book recommendation assistant.
     
-User message: "${message}"
+    User message: "${message}"
 
-Analyze the user's intent and return ONLY a JSON object with these fields:
-- text: your natural, friendly response to the user
-- intent: either "search" (if user wants book recommendations), "greeting", or "unknown"
-- keywords: if intent is "search", extract the main search terms (genre, mood, author, or topic)
+    Analyze the user's intent and return ONLY a JSON object with these fields:
+    - text: your natural, friendly response to the user
+    - intent: either "search" (if user wants book recommendations), "greeting", or "unknown"
+    - keywords: if intent is "search", extract the main search terms (genre, mood, author, or topic)
 
-Examples:
-{"text": "I'd love to recommend some thrilling books! Here are my top picks:", "intent": "search", "keywords": "thriller"}
-{"text": "Hello! I'm Bookly AI. What kind of book are you in the mood for today?", "intent": "greeting", "keywords": ""}
-{"text": "That's interesting! Tell me more about what you like to read.", "intent": "unknown", "keywords": ""}
+    Examples:
+    {"text": "I'd love to recommend some thrilling books! Here are my top picks:", "intent": "search", "keywords": "thriller"}
+    {"text": "Hello! I'm Bookly AI. What kind of book are you in the mood for today?", "intent": "greeting", "keywords": ""}
 
-Return ONLY the JSON, no other text.`;
+    Return ONLY the JSON, no other text.`;
 
-    const responseText = await callGeminiAPI(prompt);
+    const result = await model.generateContent(prompt);
+    const responseText = result.response.text();
     
-    // Extract JSON from response
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
@@ -81,99 +53,61 @@ Return ONLY the JSON, no other text.`;
     };
     
   } catch (error) {
-    console.error("Gemini API Error:", error);
+    console.error("Gemini SDK Error:", error);
     return offlineResponse(message);
   }
 };
 
-// Offline mode - works without API key
 function offlineResponse(message: string): AIResponse {
   const lowerMsg = message.toLowerCase();
-  
-  // Detect intent from keywords
-  if (lowerMsg.includes("recommend") || lowerMsg.includes("find") || lowerMsg.includes("book") || lowerMsg.includes("read")) {
-    let keywords = "";
-    
-    // Extract potential keywords
-    if (lowerMsg.includes("thriller") || lowerMsg.includes("mystery")) {
-      keywords = "thriller";
-    } else if (lowerMsg.includes("sci-fi") || lowerMsg.includes("science fiction") || lowerMsg.includes("sci fi")) {
-      keywords = "sci-fi";
-    } else if (lowerMsg.includes("motivation") || lowerMsg.includes("self") || lowerMsg.includes("development")) {
-      keywords = "self development";
-    } else if (lowerMsg.includes("romance") || lowerMsg.includes("love")) {
-      keywords = "romance";
-    } else if (lowerMsg.includes("fantasy")) {
-      keywords = "fantasy";
-    } else {
-      // Extract simple keywords
-      keywords = message.replace(/recommend|find|me|some|books|about|like|please/gi, "").trim();
-      if (keywords.length > 30) keywords = keywords.substring(0, 30);
-      if (keywords === "") keywords = "fiction";
-    }
-    
+  if (lowerMsg.includes("recommend") || lowerMsg.includes("find") || lowerMsg.includes("book")) {
     return {
-      text: `I'll look for some ${keywords} books for you!`,
+      text: "I'll look for some books for you!",
       intent: "search",
-      keywords: keywords
+      keywords: "fiction"
     };
   }
-  
-  if (lowerMsg.includes("hello") || lowerMsg.includes("hi") || lowerMsg.includes("hey")) {
-    return {
-      text: "Hello! I'm Bookly AI. Tell me what kind of book you're looking for and I'll help you find it!",
-      intent: "greeting"
-    };
-  }
-  
   return {
-    text: "I can help you find books! Try asking for 'thriller books', 'sci-fi recommendations', or 'books for motivation'.",
-    intent: "unknown"
+    text: "Hello! I'm Bookly AI. How can I help you find your next read?",
+    intent: "greeting"
   };
 }
 
 export const generateDescription = async (title: string, author: string): Promise<string> => {
-  if (!GEMINI_API_KEY) {
-    return `${title} by ${author} is a captivating book that readers are loving. A must-read for fans of ${author}!`;
-  }
+  if (!genAI) return `${title} by ${author} is a great read.`;
   
   try {
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     const prompt = `Generate a short, engaging book description for "${title}" by ${author}. Make it 2-3 sentences.`;
-    const response = await callGeminiAPI(prompt);
-    return response;
+    const result = await model.generateContent(prompt);
+    return result.response.text();
   } catch {
-    return `${title} by ${author} is a wonderful book that explores deep themes with beautiful prose. Highly recommended!`;
+    return `${title} by ${author} is a wonderful book.`;
   }
 };
 
 export const generateReviewSummary = async (reviews: any[]): Promise<string> => {
-  if (!reviews || reviews.length === 0) return "No reviews yet. Be the first to review this book!";
-  if (!GEMINI_API_KEY) {
-    const avgRating = reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length;
-    return `Readers rate this book ${avgRating.toFixed(1)} stars out of 5. ${reviews.length} reviews total.`;
-  }
+  if (!reviews || reviews.length === 0) return "No reviews yet.";
+  if (!genAI) return "Readers are enjoying this book!";
   
   try {
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     const reviewTexts = reviews.slice(0, 5).map(r => r.comment).join(". ");
-    const prompt = `Summarize what readers are saying about this book in 1 sentence based on these reviews: ${reviewTexts}`;
-    const response = await callGeminiAPI(prompt);
-    return response;
+    const prompt = `Summarize what readers are saying about this book in 1 sentence: ${reviewTexts}`;
+    const result = await model.generateContent(prompt);
+    return result.response.text();
   } catch {
-    return "Readers are enjoying this book! Check out the reviews for more details.";
+    return "Readers are enjoying this book!";
   }
 };
 
 export const analyzeUserMood = (mood: string): string[] => {
   const moodMap: Record<string, string[]> = {
-    happy: ["Fiction", "Comedy", "Lifestyle", "Adventure"],
-    sad: ["Drama", "Poetry", "Memoir", "Inspirational"],
-    curious: ["Science", "History", "Technology", "Philosophy"],
-    tired: ["Short Stories", "Light Fiction", "Art", "Travel"],
-    motivated: ["Self Development", "Business", "Biography", "Productivity"],
-    stressed: ["Mindfulness", "Meditation", "Self Development", "Fiction"],
-    romantic: ["Romance", "Fiction", "Classics"],
-    adventurous: ["Adventure", "Fantasy", "Sci-Fi", "Travel"]
+    happy: ["Fiction", "Comedy", "Adventure"],
+    sad: ["Drama", "Poetry", "Inspirational"],
+    curious: ["Science", "History", "Philosophy"],
+    tired: ["Short Stories", "Light Fiction"],
+    motivated: ["Self Development", "Business", "Biography"],
   };
-  
-  return moodMap[mood.toLowerCase()] || ["Fiction", "General"];
+  return moodMap[mood.toLowerCase()] || ["Fiction"];
 };

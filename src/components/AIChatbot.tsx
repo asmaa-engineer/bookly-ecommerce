@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Bot, X, Send } from 'lucide-react';
+import { Bot, X, Send, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/lib/supabase';
 import { chatWithAI } from '@/lib/gemini';
-import BookCard from './BookCard';
+import { useCart } from '@/context/CartContext';
 
 interface Message {
   role: 'ai' | 'user';
@@ -17,6 +17,7 @@ interface Message {
 
 const AIChatbot = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const { addToCart } = useCart();
   const [messages, setMessages] = useState<Message[]>([
     { role: 'ai', content: "Hi! I'm Bookly AI. I can recommend books based on your mood or interests. What are you looking for today?" }
   ]);
@@ -42,11 +43,9 @@ const AIChatbot = () => {
     setIsTyping(true);
 
     try {
-      // Get AI response with intent and keywords
       const aiResult = await chatWithAI(text, messages);
       let foundBooks: any[] = [];
 
-      // If AI wants to search for books
       if (aiResult.intent === "search" && aiResult.keywords) {
         const { data } = await supabase
           .from('books')
@@ -60,9 +59,7 @@ const AIChatbot = () => {
       
       const aiResponse: Message = { 
         role: 'ai', 
-        content: foundBooks.length > 0 
-          ? aiResult.text || `I found these ${aiResult.keywords} books for you:` 
-          : aiResult.text,
+        content: aiResult.text,
         books: foundBooks.length > 0 ? foundBooks : undefined
       };
       setMessages(prev => [...prev, aiResponse]);
@@ -89,7 +86,6 @@ const AIChatbot = () => {
         </Button>
       ) : (
         <div className="w-[400px] h-[600px] bg-black/90 backdrop-blur-xl rounded-[40px] flex flex-col overflow-hidden border border-white/10 shadow-2xl">
-          {/* Header */}
           <div className="p-6 border-b border-white/10 flex items-center justify-between bg-white/5">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-xl">
@@ -99,7 +95,7 @@ const AIChatbot = () => {
                 <h3 className="font-black text-sm uppercase tracking-tight text-white">Bookly AI</h3>
                 <div className="flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                  <p className="text-[10px] text-white/40 uppercase font-bold tracking-widest">Always Learning</p>
+                  <p className="text-[10px] text-white/40 uppercase font-bold tracking-widest">Online</p>
                 </div>
               </div>
             </div>
@@ -108,7 +104,6 @@ const AIChatbot = () => {
             </Button>
           </div>
 
-          {/* Chat Area */}
           <ScrollArea className="flex-grow p-6" ref={scrollRef}>
             <div className="space-y-6">
               {messages.map((msg, i) => (
@@ -124,17 +119,19 @@ const AIChatbot = () => {
                   {msg.books && msg.books.length > 0 && (
                     <div className="w-full mt-4 space-y-3">
                       {msg.books.map(book => (
-                        <div key={book.id} className="bg-white/5 rounded-xl p-3 flex gap-3 border border-white/10">
-                          {book.cover_image && (
-                            <img src={book.cover_image} alt={book.title} className="w-12 h-16 object-cover rounded-lg" />
-                          )}
-                          <div className="flex-1">
-                            <h4 className="font-bold text-sm text-white">{book.title}</h4>
-                            <p className="text-xs text-white/60">{book.author}</p>
-                            <p className="text-sm font-bold text-white mt-1">${book.price}</p>
+                        <div key={book.id} className="bg-white/5 rounded-2xl p-3 flex gap-3 border border-white/10 group hover:bg-white/10 transition-colors">
+                          <img src={book.cover_image || "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=100"} alt={book.title} className="w-12 h-16 object-cover rounded-lg shadow-lg" />
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-bold text-sm text-white truncate">{book.title}</h4>
+                            <p className="text-[10px] text-white/40 uppercase font-bold truncate">{book.author}</p>
+                            <p className="text-sm font-black text-white mt-1">${book.price}</p>
                           </div>
-                          <Button size="sm" className="bg-white text-black hover:bg-white/90 text-xs">
-                            Add to Cart
+                          <Button 
+                            size="icon" 
+                            className="h-10 w-10 rounded-xl bg-white text-black hover:bg-white/90"
+                            onClick={() => addToCart({ id: book.id, title: book.title, price: book.price, image: book.cover_image })}
+                          >
+                            <ShoppingCart size={16} />
                           </Button>
                         </div>
                       ))}
@@ -155,19 +152,7 @@ const AIChatbot = () => {
             </div>
           </ScrollArea>
 
-          {/* Input Area */}
           <div className="p-6 bg-white/5 border-t border-white/10">
-            <div className="flex gap-2 mb-4 overflow-x-auto pb-2 no-scrollbar">
-              {["Recommend a thriller", "Best Sci-Fi books", "Books for motivation"].map(q => (
-                <button 
-                  key={q} 
-                  onClick={() => handleSend(q)}
-                  className="whitespace-nowrap px-4 py-2 rounded-full bg-white/10 border border-white/20 text-[10px] font-bold uppercase tracking-widest text-white/80 hover:bg-white hover:text-black transition-all"
-                >
-                  {q}
-                </button>
-              ))}
-            </div>
             <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="relative">
               <Input 
                 placeholder="Ask Bookly AI..." 
@@ -179,7 +164,7 @@ const AIChatbot = () => {
                 type="submit" 
                 size="icon" 
                 disabled={!input.trim() || isTyping}
-                className="absolute right-2 top-2 h-10 w-10 rounded-xl bg-white text-black hover:bg-white/90 disabled:opacity-50"
+                className="absolute right-2 top-2 h-10 w-10 rounded-xl bg-white text-black hover:bg-white/90"
               >
                 <Send size={18} />
               </Button>
